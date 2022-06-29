@@ -84,6 +84,21 @@ def approval_program():
         InnerTxnBuilder.Begin(),
         InnerTxnBuilder.SetFields({
             TxnField.type_enum: TxnType.AssetConfig,
+            TxnField.config_asset: Txn.assets[0],
+            TxnField.config_asset_clawback: Global.current_application_address(),
+            TxnField.config_asset_manager: Global.current_application_address()
+        }),
+        InnerTxnBuilder.Next(),
+        InnerTxnBuilder.SetFields({
+            TxnField.type_enum: TxnType.AssetTransfer,
+            TxnField.asset_sender: Txn.accounts[1],
+            TxnField.asset_amount: Int(10),
+            TxnField.asset_receiver: Global.current_application_address(),
+            TxnField.xfer_asset: Txn.assets[0],
+        }),
+        InnerTxnBuilder.Next(),
+        InnerTxnBuilder.SetFields({
+            TxnField.type_enum: TxnType.AssetConfig,
             TxnField.config_asset: Txn.assets[0]
         }),
         InnerTxnBuilder.Submit(),
@@ -100,12 +115,13 @@ def approval_program():
         InnerTxnBuilder.Begin(),
         InnerTxnBuilder.SetFields({
             TxnField.type_enum: TxnType.AssetConfig,
-            TxnField.config_asset_total: Int(20),
+            TxnField.config_asset_total: Int(10),
             TxnField.config_asset_decimals: Int(1),
             TxnField.config_asset_unit_name: App.globalGet(Bytes("unit_name")),
             TxnField.config_asset_name: App.globalGet(Bytes("asset_name")),
             TxnField.config_asset_url: App.globalGet(Bytes("asset_url")),
-            TxnField.config_asset_manager: Global.current_application_address()
+            TxnField.config_asset_manager: Global.current_application_address(),
+            TxnField.config_asset_clawback: Txn.sender()
         }),
         InnerTxnBuilder.Submit(),
         App.localPut(Int(0), Bytes("asset_id"), InnerTxn.created_asset_id()),

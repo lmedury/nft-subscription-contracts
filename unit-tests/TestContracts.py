@@ -95,7 +95,7 @@ class TestContract(unittest.TestCase):
         print("Successfully opted in to asset by second account")
 
         print("Accepting the nft")
-        #helper.accept_nft(TestContract.algod_client, TestContract.app_index, TestContract.second_account, mnemonic.to_private_key(TestContract.second_account_mnemonic))
+        helper.accept_nft(TestContract.algod_client, TestContract.app_index, TestContract.second_account, mnemonic.to_private_key(TestContract.second_account_mnemonic))
     
     def test_i_destroy_asset(self):
 

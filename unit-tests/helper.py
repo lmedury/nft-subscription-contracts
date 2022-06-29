@@ -110,8 +110,8 @@ def DeployContract(algod_client, contract_owner_mnemonic):
 
     on_complete = transaction.OnComplete.NoOpOC.real
 
-    compileTeal(approval_program(), Mode.Application,version=5)
-    compileTeal(clear_state_program(), Mode.Application,version=5)
+    compileTeal(approval_program(), Mode.Application,version=6)
+    compileTeal(clear_state_program(), Mode.Application,version=6)
 
     contract_approval_program = compile_program(algod_client, import_teal_source_code_as_binary('nft_subscription_approval.teal'))
     contract_clear_state_program = compile_program(algod_client, import_teal_source_code_as_binary('nft_subscription_clear_state.teal'))
