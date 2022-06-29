@@ -20,17 +20,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 
-'''
-on_creation:
-asset_total = 1
-decimals = 1
-unit_name = arg_0
-asset_name = arg_1
-asset_url = arg_2
-subscription_price = arg_3
-manager = smart contract
-'''
-
 from pyteal import *
 from algosdk import account, mnemonic
 
@@ -40,14 +29,18 @@ def approval_program():
     arg_1 = Txn.application_args[1]
     arg_2 = Txn.application_args[2]
     arg_3 = Txn.application_args[3]
+    arg_4 = Txn.application_args[4]
 
     acc_1 = Txn.accounts[1]
+
+    subscription_price = Mul(Btoi(arg_1), App.globalGet(Bytes("subscription_price")))
     
     on_creation = Seq([
         App.globalPut(Bytes("unit_name"), arg_0),
         App.globalPut(Bytes("asset_name"), arg_1),
         App.globalPut(Bytes("asset_url"), arg_2),
         App.globalPut(Bytes("subscription_price"), Btoi(arg_3)),
+        App.globalPut(Bytes("duration"), Btoi(arg_4)),
         App.globalPut(Bytes("receiver_address"), acc_1),
         Return(Int(1))
     ])
@@ -108,7 +101,7 @@ def approval_program():
     subscriber_nft = Seq([
         Assert(Global.group_size() == Int(2)),
         Assert(Gtxn[0].receiver() == App.globalGet(Bytes("receiver_address"))),
-        Assert(Gtxn[0].amount() == App.globalGet(Bytes("subscription_price"))),
+        Assert(Gtxn[0].amount() == subscription_price),
         Assert(Gtxn[0].type_enum() == TxnType.Payment),
         Assert(Gtxn[1].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[1].sender() == Gtxn[0].sender()),
@@ -125,7 +118,7 @@ def approval_program():
         }),
         InnerTxnBuilder.Submit(),
         App.localPut(Int(0), Bytes("asset_id"), InnerTxn.created_asset_id()),
-        App.localPut(Int(0), Bytes("expiry"), Add(Global.latest_timestamp(), Int(10))),
+        App.localPut(Int(0), Bytes("expiry"), Add(Global.latest_timestamp(), Mul(Btoi(arg_1), App.globalGet(Bytes("duration"))))),
         App.localPut(Int(0), Bytes("accepted"), Int(0)),
         Return(Int(1))
     ])

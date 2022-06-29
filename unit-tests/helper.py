@@ -117,12 +117,14 @@ def DeployContract(algod_client, contract_owner_mnemonic):
     contract_clear_state_program = compile_program(algod_client, import_teal_source_code_as_binary('nft_subscription_clear_state.teal'))
     
     price = 1000000
+    duration = 10
 
     app_args = [
         b'NFT',
         b'Non Fungible Token',
         b'https://nft.com',
-        price.to_bytes(8, 'big')
+        price.to_bytes(8, 'big'),
+        duration.to_bytes(8, 'big')
     ]
 
     txn = transaction.ApplicationCreateTxn(sender, algod_client.suggested_params(), on_complete, contract_approval_program, contract_clear_state_program, global_schema, local_schema, app_args, accounts=[sender])
@@ -171,8 +173,10 @@ def subscribe(algod_client, app_id, sender, receiver, private_key):
     Grp_txns_unsign.append(pmnt_txn_unsign)
 
     # 4. Write name and owner's address in local storage
+    duration = 1
     txn_args = [
-        "subscribe".encode("utf-8")
+        "subscribe".encode("utf-8"),
+        duration.to_bytes(8, 'big')
     ]
     app_call_txn = transaction.ApplicationNoOpTxn(sender, algod_client.suggested_params(), app_id, txn_args)
     Grp_txns_unsign.append(app_call_txn)
