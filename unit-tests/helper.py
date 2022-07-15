@@ -28,10 +28,12 @@ from algosdk import logic
 import json
 from pyteal import *
 
+
 import sys
 sys.path.append('../')
 
 from contracts.nft_subscription import approval_program, clear_state_program
+from contracts.lsig import ValidateRecord
 import base64
 import datetime,time
 import mysecrets
@@ -165,14 +167,24 @@ def fund_app(algod_client, app_id, sender, private_key):
 
     print('Successfully funded escrow account')
 
+def prep_lsig(algod_client, app, sender, name="lalith", method="subscribe"):
+    logic_sig_teal = compileTeal(ValidateRecord(name, app, sender), Mode.Signature, version=4)
+    validate_name_record_program = compile_program(algod_client, str.encode(logic_sig_teal))
+    lsig = LogicSigAccount(validate_name_record_program, [method.encode()])
+
+    return lsig
+
 def subscribe(algod_client, app_id, sender, receiver, private_key):
 
+    lsig = prep_lsig(algod_client, app_id, sender)
+    print(lsig.address())
     Grp_txns_unsign = []
     #reg_escrow_acct = logic.get_application_address(app_id)
+    lsig_payment_txn = transaction.PaymentTxn(sender, algod_client.suggested_params(), receiver, 0)
+    Grp_txns_unsign.append(lsig_payment_txn)
     pmnt_txn_unsign = transaction.PaymentTxn(sender, algod_client.suggested_params(), receiver, 1000000, None)
     Grp_txns_unsign.append(pmnt_txn_unsign)
 
-    # 4. Write name and owner's address in local storage
     duration = 1
     txn_args = [
         "subscribe".encode("utf-8"),
@@ -182,16 +194,14 @@ def subscribe(algod_client, app_id, sender, receiver, private_key):
     Grp_txns_unsign.append(app_call_txn)
 
     gid = transaction.calculate_group_id(Grp_txns_unsign)
-    for i in range(0,2):
+    for i in range(0,3):
         Grp_txns_unsign[i].group = gid
 
-    signed_txns = [Grp_txns_unsign[0].sign(private_key), Grp_txns_unsign[1].sign(private_key)]
+    signed_txns = [Grp_txns_unsign[0].sign(private_key), Grp_txns_unsign[1].sign(private_key), Grp_txns_unsign[2].sign(private_key)]
     algod_client.send_transactions(signed_txns)
     wait_for_confirmation(algod_client, pmnt_txn_unsign.get_txid())
-
-
+    
 def accept_nft(algod_client, app_id, sender, private_key):
-
     
     txn_args = [
         "accept_nft".encode("utf-8")
@@ -206,18 +216,30 @@ def accept_nft(algod_client, app_id, sender, private_key):
 
 def destroy_nft(algod_client, app_id, sender, owner, private_key):
 
-    
+    lsig = prep_lsig(algod_client, app_id, sender, method="revoke")
+    asset_id = get_local_state(owner, app_id)
+
     txn_args = [
         "destroy_nft".encode("utf-8")
     ]
     assets=[
         get_local_state(owner, app_id)
     ]
-    app_call_txn = transaction.ApplicationNoOpTxn(sender, algod_client.suggested_params(), app_id, txn_args, accounts=[owner], foreign_assets=assets)
-    
-    algod_client.send_transaction(app_call_txn.sign(private_key))
-    wait_for_confirmation(algod_client, app_call_txn.get_txid())
+    txn_0 = transaction.ApplicationNoOpTxn(sender, algod_client.suggested_params(), app_id, txn_args, accounts=[owner], foreign_assets=assets)
+    txn_1 = transaction.AssetOptInTxn(lsig.address(), algod_client.suggested_params(), asset_id)
+    txn_2 = transaction.AssetTransferTxn(lsig.address(), algod_client.suggested_params(), lsig.address(), 10, asset_id, revocation_target=owner)
+    txn_3 = transaction.AssetConfigTxn(lsig.address(), algod_client.suggested_params(), asset_id, strict_empty_address_check=False)
 
+    txns = [txn_0, txn_1, txn_2, txn_3]
+
+    gid = transaction.calculate_group_id(txns)
+    for i in range(0,3):
+        txns[i].group = gid
+    
+    signed_txns = [txns[0].sign(private_key), LogicSigTransaction(txns[1], lsig), LogicSigAccount(txns[2], lsig), LogicSigTransaction(txns[3], lsig)]
+    algod_client.send_transactions(signed_txns)
+    wait_for_confirmation(algod_client, txn_0.get_txid())
+    
 def get_local_state(address, app_id):
     # TODO: Make sure there are no edge cases
     algod_indexer = SetupIndexer("purestake")

@@ -24,6 +24,7 @@ import unittest, time
 from algosdk import mnemonic
 import json, random, string
 import helper
+import mysecrets
 
 unittest.TestLoader.sortTestMethodsUsing = None
 
@@ -74,15 +75,20 @@ class TestContract(unittest.TestCase):
         print("Test 3: Funding SC address")
         
         subscribe = helper.fund_app(TestContract.algod_client, TestContract.app_index, TestContract.funding_addr, mnemonic.to_private_key(TestContract.funding_acct_mnemonic))
-        
+    
     
     def test_g_subscribe_to_nft(self):
 
         print("Test 4: Subscribe to NFT")
-        
+        #app = 98192758
+        #mnemonic_addr = mnemonic.to_private_key(mysecrets.FUNDING_ACCOUNT_MNEMONIC)
+        #account = "3VMNU3OGU725L6A2HFOE7DJKMDFLISVQJMXWDBXLG4XWZZQJJBCHC44YBU"
         subscribe = helper.subscribe(TestContract.algod_client, TestContract.app_index, TestContract.second_account, TestContract.new_acct_addr, mnemonic.to_private_key(TestContract.second_account_mnemonic))
-        print('Assrt created and subcribed')
+        #subscribe = helper.subscribe(TestContract.algod_client, TestContract.app_index, account, TestContract.new_acct_addr, mnemonic_addr)
+        print(subscribe)
+        print('Asset created and subcribed')
 
+    
     def test_h_optin_and_accept_asset(self):
 
         print("Test 5: getting account local state")
@@ -96,12 +102,17 @@ class TestContract(unittest.TestCase):
 
         print("Accepting the nft")
         helper.accept_nft(TestContract.algod_client, TestContract.app_index, TestContract.second_account, mnemonic.to_private_key(TestContract.second_account_mnemonic))
+
+        print("Funding lsig")
+        lsig = helper.prep_lsig(TestContract.algod_client)
+        helper.FundNewAccount(TestContract.algod_client, lsig.address(), 1000000, TestContract.funding_acct_mnemonic)
     
+    '''
     def test_i_destroy_asset(self):
 
         print("Test 6: destroying the asset")    
         helper.destroy_nft(TestContract.algod_client, TestContract.app_index, TestContract.funding_addr, TestContract.second_account, mnemonic.to_private_key(TestContract.funding_acct_mnemonic))
-   
+    '''
 
 # TODO: See where tearDown goes, class or outside
 def tearDownClass(self) -> None:

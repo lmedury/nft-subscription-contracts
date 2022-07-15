@@ -74,37 +74,15 @@ def approval_program():
     destroy_nft = Seq([
         Assert(App.localGet(Int(1), Bytes("expiry")) < Global.latest_timestamp()),
         Assert(Txn.assets[0] == App.localGet(Int(1), Bytes("asset_id"))),
-        InnerTxnBuilder.Begin(),
-        InnerTxnBuilder.SetFields({
-            TxnField.type_enum: TxnType.AssetConfig,
-            TxnField.config_asset: Txn.assets[0],
-            TxnField.config_asset_clawback: Global.current_application_address(),
-            TxnField.config_asset_manager: Global.current_application_address()
-        }),
-        InnerTxnBuilder.Next(),
-        InnerTxnBuilder.SetFields({
-            TxnField.type_enum: TxnType.AssetTransfer,
-            TxnField.asset_sender: Txn.accounts[1],
-            TxnField.asset_amount: Int(10),
-            TxnField.asset_receiver: Global.current_application_address(),
-            TxnField.xfer_asset: Txn.assets[0],
-        }),
-        InnerTxnBuilder.Next(),
-        InnerTxnBuilder.SetFields({
-            TxnField.type_enum: TxnType.AssetConfig,
-            TxnField.config_asset: Txn.assets[0]
-        }),
-        InnerTxnBuilder.Submit(),
         Return(Int(1))
     ])
 
     subscriber_nft = Seq([
-        Assert(Global.group_size() == Int(2)),
-        Assert(Gtxn[0].receiver() == App.globalGet(Bytes("receiver_address"))),
-        Assert(Gtxn[0].amount() == subscription_price),
-        Assert(Gtxn[0].type_enum() == TxnType.Payment),
-        Assert(Gtxn[1].type_enum() == TxnType.ApplicationCall),
-        Assert(Gtxn[1].sender() == Gtxn[0].sender()),
+        Assert(Gtxn[1].receiver() == App.globalGet(Bytes("receiver_address"))),
+        Assert(Gtxn[1].amount() == subscription_price),
+        Assert(Gtxn[1].type_enum() == TxnType.Payment),
+        Assert(Gtxn[2].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[2].sender() == Gtxn[0].sender()),
         InnerTxnBuilder.Begin(),
         InnerTxnBuilder.SetFields({
             TxnField.type_enum: TxnType.AssetConfig,
@@ -113,8 +91,8 @@ def approval_program():
             TxnField.config_asset_unit_name: App.globalGet(Bytes("unit_name")),
             TxnField.config_asset_name: App.globalGet(Bytes("asset_name")),
             TxnField.config_asset_url: App.globalGet(Bytes("asset_url")),
-            TxnField.config_asset_manager: Global.current_application_address(),
-            TxnField.config_asset_clawback: Txn.sender()
+            TxnField.config_asset_manager: Gtxn[0].receiver(),
+            TxnField.config_asset_clawback: Gtxn[0].receiver()
         }),
         InnerTxnBuilder.Submit(),
         App.localPut(Int(0), Bytes("asset_id"), InnerTxn.created_asset_id()),
@@ -148,3 +126,28 @@ with open('nft_subscription_approval.teal', 'w') as f:
 with open('nft_subscription_clear_state.teal', 'w') as f:
     compiled = compileTeal(clear_state_program(), Mode.Application, version=6)
     f.write(compiled)
+
+'''
+InnerTxnBuilder.Begin(),
+InnerTxnBuilder.SetFields({
+    TxnField.type_enum: TxnType.AssetConfig,
+    TxnField.config_asset: Txn.assets[0],
+    TxnField.config_asset_clawback: Global.current_application_address(),
+    TxnField.config_asset_manager: Global.current_application_address()
+}),
+InnerTxnBuilder.Next(),
+InnerTxnBuilder.SetFields({
+    TxnField.type_enum: TxnType.AssetTransfer,
+    TxnField.asset_sender: Txn.accounts[1],
+    TxnField.asset_amount: Int(10),
+    TxnField.asset_receiver: Global.current_application_address(),
+    TxnField.xfer_asset: Txn.assets[0],
+}),
+InnerTxnBuilder.Next(),
+InnerTxnBuilder.SetFields({
+    TxnField.type_enum: TxnType.AssetConfig,
+    TxnField.config_asset: Txn.assets[0]
+}),
+InnerTxnBuilder.Submit(),
+Return(Int(1))
+'''
