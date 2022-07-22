@@ -25,6 +25,8 @@ from algosdk import account, mnemonic
 
 def approval_program():
 
+    error_margin = Int(60)
+
     arg_0 = Txn.application_args[0]
     arg_1 = Txn.application_args[1]
     arg_2 = Txn.application_args[2]
@@ -34,6 +36,7 @@ def approval_program():
     acc_1 = Txn.accounts[1]
 
     subscription_price = Mul(Btoi(arg_1), App.globalGet(Bytes("subscription_price")))
+    expiry = Add(Mul(Btoi(arg_1), App.globalGet(Bytes("duration"))), Global.latest_timestamp())
     
     on_creation = Seq([
         App.globalPut(Bytes("unit_name"), arg_0),
@@ -83,6 +86,13 @@ def approval_program():
         Assert(Gtxn[1].type_enum() == TxnType.Payment),
         Assert(Gtxn[2].type_enum() == TxnType.ApplicationCall),
         Assert(Gtxn[2].sender() == Gtxn[0].sender()),
+       
+        Assert(
+            Or(
+                Btoi(arg_2) <= Add(error_margin, expiry), 
+                Btoi(arg_2) >= Minus(expiry, error_margin),
+            )
+        ),
         InnerTxnBuilder.Begin(),
         InnerTxnBuilder.SetFields({
             TxnField.type_enum: TxnType.AssetConfig,
@@ -96,7 +106,7 @@ def approval_program():
         }),
         InnerTxnBuilder.Submit(),
         App.localPut(Int(0), Bytes("asset_id"), InnerTxn.created_asset_id()),
-        App.localPut(Int(0), Bytes("expiry"), Add(Global.latest_timestamp(), Mul(Btoi(arg_1), App.globalGet(Bytes("duration"))))),
+        App.localPut(Int(0), Bytes("expiry"), Btoi(arg_2)),
         App.localPut(Int(0), Bytes("accepted"), Int(0)),
         Return(Int(1))
     ])
@@ -150,4 +160,11 @@ InnerTxnBuilder.SetFields({
 }),
 InnerTxnBuilder.Submit(),
 Return(Int(1))
+        
+Assert(
+    Or(
+        Btoi(arg_2) <= Add(error_margin, Mul(Btoi(arg_1), App.globalGet(Bytes("duration")))), 
+        Btoi(arg_2) >= Minus(Mul(Btoi(arg_1), App.globalGet(Bytes("duration"))), error_margin),
+    )
+),
 '''

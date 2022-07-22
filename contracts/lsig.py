@@ -23,16 +23,12 @@ SOFTWARE.
 from pyteal import *
 from . import constants
 
-def ValidateRecord(name, appId, sender):
+def ValidateRecord(name, timestamp):
 
     i = ScratchVar(TealType.uint64)
 
-    bytes_assetid = Bytes("asset_id")
-    bytes_expiry = Bytes("expiry")
-
     is_valid_txn = Seq([
 
-        Assert(Int(appId) > Int(0)),
         Assert(Len(Bytes(name)) <= Int(64)),
         For(i.store(Int(0)), i.load() < Len(Bytes(name)), i.store(i.load() + Int(1))).Do(
             Assert(
@@ -53,17 +49,13 @@ def ValidateRecord(name, appId, sender):
     ])
 
     subscribe = Seq([
+        Assert(Int(timestamp) > Global.latest_timestamp()),
         Assert(is_valid_txn),
         Return(Int(1))
     ])
 
     revoke = Seq([
-        expiry := App.localGetEx(Addr(sender), Gtxn[0].applications[0], bytes_expiry),
-        If(expiry.hasValue()).Then(Assert(expiry.value() <= Global.latest_timestamp())).
-        Else(Err()),
-        asset:= App.localGetEx(Addr(sender), Gtxn[0].assets[0], bytes_assetid),
-        If(asset.hasValue()).Then(Assert(asset.value() == Btoi(Arg(1)))).
-        Else(Err()),
+        Assert(Int(timestamp) < Global.latest_timestamp()),
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[2].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[3].type_enum() == TxnType.AssetConfig),

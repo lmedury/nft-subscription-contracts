@@ -167,16 +167,16 @@ def fund_app(algod_client, app_id, sender, private_key):
 
     print('Successfully funded escrow account')
 
-def prep_lsig(algod_client, app, sender, name="lalith", method="subscribe"):
-    logic_sig_teal = compileTeal(ValidateRecord(name, app, sender), Mode.Signature, version=4)
+def prep_lsig(algod_client, expiry, name="lalith", method="subscribe"):
+    logic_sig_teal = compileTeal(ValidateRecord(name, expiry), Mode.Signature, version=4)
     validate_name_record_program = compile_program(algod_client, str.encode(logic_sig_teal))
     lsig = LogicSigAccount(validate_name_record_program, [method.encode()])
 
     return lsig
 
-def subscribe(algod_client, app_id, sender, receiver, private_key):
+def subscribe(algod_client, app_id, sender, receiver, private_key, expiry):
 
-    lsig = prep_lsig(algod_client, app_id, sender)
+    lsig = prep_lsig(algod_client, expiry)
     print(lsig.address())
     Grp_txns_unsign = []
     #reg_escrow_acct = logic.get_application_address(app_id)
@@ -188,7 +188,8 @@ def subscribe(algod_client, app_id, sender, receiver, private_key):
     duration = 1
     txn_args = [
         "subscribe".encode("utf-8"),
-        duration.to_bytes(8, 'big')
+        duration.to_bytes(8, 'big'),
+        expiry.to_bytes(8, 'big')
     ]
     app_call_txn = transaction.ApplicationNoOpTxn(sender, algod_client.suggested_params(), app_id, txn_args)
     Grp_txns_unsign.append(app_call_txn)
@@ -214,9 +215,9 @@ def accept_nft(algod_client, app_id, sender, private_key):
     algod_client.send_transaction(app_call_txn.sign(private_key))
     wait_for_confirmation(algod_client, app_call_txn.get_txid())
 
-def destroy_nft(algod_client, app_id, sender, owner, private_key):
+def destroy_nft(algod_client, app_id, sender, owner, private_key, expiry):
 
-    lsig = prep_lsig(algod_client, app_id, sender, method="revoke")
+    lsig = prep_lsig(algod_client, expiry, method="revoke")
     asset_id = get_local_state(owner, app_id)
 
     txn_args = [
@@ -233,7 +234,7 @@ def destroy_nft(algod_client, app_id, sender, owner, private_key):
     txns = [txn_0, txn_1, txn_2, txn_3]
 
     gid = transaction.calculate_group_id(txns)
-    for i in range(0,3):
+    for i in range(0,4):
         txns[i].group = gid
     
     signed_txns = [txns[0].sign(private_key), LogicSigTransaction(txns[1], lsig), LogicSigAccount(txns[2], lsig), LogicSigTransaction(txns[3], lsig)]

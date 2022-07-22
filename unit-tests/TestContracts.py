@@ -40,12 +40,13 @@ class TestContract(unittest.TestCase):
         print("Generated new account: "+cls.new_acct_addr)
  
         cls.name = ''.join(random.choice(string.ascii_lowercase) for i in range(6))
-
         cls.app_index = 0
 
 #class DeployNameRegistry(TestContract):
     
+    
     def test_a_deploynameregistry(self):
+        
         
         helper.FundNewAccount(TestContract.algod_client, TestContract.new_acct_addr, 901000, TestContract.funding_acct_mnemonic)    
 
@@ -60,7 +61,7 @@ class TestContract(unittest.TestCase):
         response=TestContract.algod_indexer.applications(TestContract.app_index)
         self.assertEqual(TestContract.app_index, response["application"]["id"])
         self.assertEqual(TestContract.new_acct_addr,response["application"]["params"]["creator"])
-
+        
     def test_e_set_account_prop(self):
 
         print("Test 2: Optin to account")
@@ -80,12 +81,12 @@ class TestContract(unittest.TestCase):
     def test_g_subscribe_to_nft(self):
 
         print("Test 4: Subscribe to NFT")
+        TestContract.expiry = int(time.time())+10
         #app = 98192758
         #mnemonic_addr = mnemonic.to_private_key(mysecrets.FUNDING_ACCOUNT_MNEMONIC)
         #account = "3VMNU3OGU725L6A2HFOE7DJKMDFLISVQJMXWDBXLG4XWZZQJJBCHC44YBU"
-        subscribe = helper.subscribe(TestContract.algod_client, TestContract.app_index, TestContract.second_account, TestContract.new_acct_addr, mnemonic.to_private_key(TestContract.second_account_mnemonic))
+        helper.subscribe(TestContract.algod_client, TestContract.app_index, TestContract.second_account, TestContract.new_acct_addr, mnemonic.to_private_key(TestContract.second_account_mnemonic), TestContract.expiry)
         #subscribe = helper.subscribe(TestContract.algod_client, TestContract.app_index, account, TestContract.new_acct_addr, mnemonic_addr)
-        print(subscribe)
         print('Asset created and subcribed')
 
     
@@ -104,15 +105,14 @@ class TestContract(unittest.TestCase):
         helper.accept_nft(TestContract.algod_client, TestContract.app_index, TestContract.second_account, mnemonic.to_private_key(TestContract.second_account_mnemonic))
 
         print("Funding lsig")
-        lsig = helper.prep_lsig(TestContract.algod_client)
+        lsig = helper.prep_lsig(TestContract.algod_client, TestContract.expiry)
         helper.FundNewAccount(TestContract.algod_client, lsig.address(), 1000000, TestContract.funding_acct_mnemonic)
     
-    '''
     def test_i_destroy_asset(self):
 
         print("Test 6: destroying the asset")    
-        helper.destroy_nft(TestContract.algod_client, TestContract.app_index, TestContract.funding_addr, TestContract.second_account, mnemonic.to_private_key(TestContract.funding_acct_mnemonic))
-    '''
+        helper.destroy_nft(TestContract.algod_client, TestContract.app_index, TestContract.funding_addr, TestContract.second_account, mnemonic.to_private_key(TestContract.funding_acct_mnemonic), TestContract.expiry)
+    
 
 # TODO: See where tearDown goes, class or outside
 def tearDownClass(self) -> None:
