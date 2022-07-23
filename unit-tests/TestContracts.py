@@ -82,6 +82,8 @@ class TestContract(unittest.TestCase):
 
         print("Test 4: Subscribe to NFT")
         TestContract.expiry = int(time.time())+10
+        lsig = helper.prep_lsig(TestContract.algod_client, TestContract.expiry)
+        helper.FundNewAccount(TestContract.algod_client, lsig.address(), 1000000, TestContract.funding_acct_mnemonic)
         #app = 98192758
         #mnemonic_addr = mnemonic.to_private_key(mysecrets.FUNDING_ACCOUNT_MNEMONIC)
         #account = "3VMNU3OGU725L6A2HFOE7DJKMDFLISVQJMXWDBXLG4XWZZQJJBCHC44YBU"
@@ -97,22 +99,20 @@ class TestContract(unittest.TestCase):
         asset_id = helper.get_local_state(TestContract.second_account, TestContract.app_index)
         print("Asset ID: ", asset_id)
 
-        print("Opting in to asset id")
         helper.optin_to_asset(TestContract.algod_client, TestContract.second_account, asset_id, mnemonic.to_private_key(TestContract.second_account_mnemonic))
-        print("Successfully opted in to asset by second account")
 
-        print("Accepting the nft")
         helper.accept_nft(TestContract.algod_client, TestContract.app_index, TestContract.second_account, mnemonic.to_private_key(TestContract.second_account_mnemonic))
 
-        print("Funding lsig")
-        lsig = helper.prep_lsig(TestContract.algod_client, TestContract.expiry)
-        helper.FundNewAccount(TestContract.algod_client, lsig.address(), 1000000, TestContract.funding_acct_mnemonic)
     
     def test_i_destroy_asset(self):
 
+        app = 98192758
+        mnemonic_addr = mnemonic.to_private_key(mysecrets.FUNDING_ACCOUNT_MNEMONIC)
+        account = "3VMNU3OGU725L6A2HFOE7DJKMDFLISVQJMXWDBXLG4XWZZQJJBCHC44YBU"
         print("Test 6: destroying the asset")    
         helper.destroy_nft(TestContract.algod_client, TestContract.app_index, TestContract.funding_addr, TestContract.second_account, mnemonic.to_private_key(TestContract.funding_acct_mnemonic), TestContract.expiry)
-    
+        #expiry = int(time.time())
+        #helper.destroy_nft(TestContract.algod_client, app, account, account, mnemonic_addr, expiry)
 
 # TODO: See where tearDown goes, class or outside
 def tearDownClass(self) -> None:

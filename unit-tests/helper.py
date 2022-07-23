@@ -177,10 +177,9 @@ def prep_lsig(algod_client, expiry, name="lalith", method="subscribe"):
 def subscribe(algod_client, app_id, sender, receiver, private_key, expiry):
 
     lsig = prep_lsig(algod_client, expiry)
-    print(lsig.address())
     Grp_txns_unsign = []
-    #reg_escrow_acct = logic.get_application_address(app_id)
-    lsig_payment_txn = transaction.PaymentTxn(sender, algod_client.suggested_params(), receiver, 0)
+    
+    lsig_payment_txn = transaction.PaymentTxn(sender, algod_client.suggested_params(), lsig.address(), 0)
     Grp_txns_unsign.append(lsig_payment_txn)
     pmnt_txn_unsign = transaction.PaymentTxn(sender, algod_client.suggested_params(), receiver, 1000000, None)
     Grp_txns_unsign.append(pmnt_txn_unsign)
@@ -219,25 +218,27 @@ def destroy_nft(algod_client, app_id, sender, owner, private_key, expiry):
 
     lsig = prep_lsig(algod_client, expiry, method="revoke")
     asset_id = get_local_state(owner, app_id)
-
+    #asset_id = 12345678
     txn_args = [
         "destroy_nft".encode("utf-8")
     ]
     assets=[
-        get_local_state(owner, app_id)
+        asset_id
     ]
+    escrow = logic.get_application_address(app_id)
     txn_0 = transaction.ApplicationNoOpTxn(sender, algod_client.suggested_params(), app_id, txn_args, accounts=[owner], foreign_assets=assets)
     txn_1 = transaction.AssetOptInTxn(lsig.address(), algod_client.suggested_params(), asset_id)
     txn_2 = transaction.AssetTransferTxn(lsig.address(), algod_client.suggested_params(), lsig.address(), 10, asset_id, revocation_target=owner)
-    txn_3 = transaction.AssetConfigTxn(lsig.address(), algod_client.suggested_params(), asset_id, strict_empty_address_check=False)
+    txn_3 = transaction.AssetTransferTxn(lsig.address(), algod_client.suggested_params(), escrow, 10, asset_id)
+    txn_4 = transaction.AssetConfigTxn(lsig.address(), algod_client.suggested_params(), asset_id, strict_empty_address_check=False)
 
-    txns = [txn_0, txn_1, txn_2, txn_3]
+    txns = [txn_0, txn_1, txn_2, txn_3, txn_4]
 
     gid = transaction.calculate_group_id(txns)
-    for i in range(0,4):
+    for i in range(0, len(txns)):
         txns[i].group = gid
     
-    signed_txns = [txns[0].sign(private_key), LogicSigTransaction(txns[1], lsig), LogicSigAccount(txns[2], lsig), LogicSigTransaction(txns[3], lsig)]
+    signed_txns = [txns[0].sign(private_key), LogicSigTransaction(txns[1], lsig), LogicSigTransaction(txns[2], lsig), LogicSigTransaction(txns[3], lsig), LogicSigTransaction(txns[4], lsig)]
     algod_client.send_transactions(signed_txns)
     wait_for_confirmation(algod_client, txn_0.get_txid())
     

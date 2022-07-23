@@ -49,16 +49,18 @@ def ValidateRecord(name, timestamp):
     ])
 
     subscribe = Seq([
-        Assert(Int(timestamp) > Global.latest_timestamp()),
+        Assert(Int(timestamp) > Int(0)),
         Assert(is_valid_txn),
         Return(Int(1))
     ])
 
     revoke = Seq([
-        Assert(Int(timestamp) < Global.latest_timestamp()),
+        Assert(Gtxn[0].type_enum() == TxnType.ApplicationCall),
+        Assert(Gtxn[0].application_args[0] == Bytes("destroy_nft")),
         Assert(Gtxn[1].type_enum() == TxnType.AssetTransfer),
         Assert(Gtxn[2].type_enum() == TxnType.AssetTransfer),
-        Assert(Gtxn[3].type_enum() == TxnType.AssetConfig),
+        Assert(Gtxn[3].type_enum() == TxnType.AssetTransfer),
+        Assert(Gtxn[4].type_enum() == TxnType.AssetConfig),
         Return(Int(1))
     ])
 
