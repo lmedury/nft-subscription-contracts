@@ -23,34 +23,12 @@ SOFTWARE.
 from pyteal import *
 from . import constants
 
-def ValidateRecord(name, timestamp):
+def ValidateRecord(timestamp):
 
     i = ScratchVar(TealType.uint64)
 
-    is_valid_txn = Seq([
-
-        Assert(Len(Bytes(name)) <= Int(64)),
-        For(i.store(Int(0)), i.load() < Len(Bytes(name)), i.store(i.load() + Int(1))).Do(
-            Assert(
-                Or(
-                    And(
-                        GetByte(Bytes(name), i.load()) >= Int(constants.ASCII_LOWER_CASE_A),
-                        GetByte(Bytes(name), i.load()) <= Int(constants.ASCII_LOWER_CASE_Z)
-                    ),
-                    And(
-                        GetByte(Bytes(name), i.load()) >= Int(constants.ASCII_DIGIT_0),
-                        GetByte(Bytes(name), i.load()) <= Int(constants.ASCII_DIGIT_9)
-                    )
-                )
-            )
-        ),
-        
-        Int(1)     
-    ])
-
     subscribe = Seq([
         Assert(Int(timestamp) > Int(0)),
-        Assert(is_valid_txn),
         Return(Int(1))
     ])
 

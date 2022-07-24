@@ -45,7 +45,8 @@ class TestContract(unittest.TestCase):
 
     def test_a_prep_lsig(self):#algod_client, expiry, name="lalith", method="subscribe"):
         #logic_sig_teal = compileTeal(ValidateRecord(name, expiry), Mode.Signature, version=4)
-        helper.prep_test_lsig(TestContract.algod_client)
+        #helper.prep_test_lsig(TestContract.algod_client)
+        helper.prep_lsig(TestContract.algod_client, 1234)
 
     def test_b_deploynameregistry(self):
         

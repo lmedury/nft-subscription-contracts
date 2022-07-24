@@ -1,15 +1,21 @@
 from pyteal import *
 from algosdk import account, mnemonic
 
+from contracts.lsig import ValidateRecord
+
+
 def approval_program():
 
     code = ScratchVar(TealType.bytes)
 
     on_creation = Seq([
 
+        App.globalPut(Bytes("CompiledTEAL"),Bytes(compileTeal(Int(0),Mode.Signature))),
         code.store(Concat(Bytes("Program"),Bytes("base64","ASABACI="))),
         App.globalPut(Bytes("LsigInStr"), code.load()),
         App.globalPut(Bytes("LsigAddress"), Sha512_256(code.load())),
+        #App.globalPut(Bytes("CP"),Bytes(compileTeal(ValidateRecord(1234),Mode.Signature,version=6))),
+        App.globalPut(Bytes("LsigAddress-gen"), Sha512_256(Concat(Bytes("Program"),Bytes(compileTeal(ValidateRecord(1234),Mode.Signature, version=6))))),
         Return(Int(1))
 
     ])

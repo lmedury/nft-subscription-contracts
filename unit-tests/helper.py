@@ -213,11 +213,18 @@ def fund_app(algod_client, app_id, sender, private_key):
 
     print('Successfully funded escrow account')
 
-def prep_lsig(algod_client, expiry, name="lalith", method="subscribe"):
-    #logic_sig_teal = compileTeal(ValidateRecord(name, expiry), Mode.Signature, version=4)
-    logic_sig_teal = "int 1"
+def prep_lsig(algod_client, expiry, method="subscribe"):
+    logic_sig_teal = compileTeal(ValidateRecord(1234), Mode.Signature, version=6)
+    #logic_sig_teal = "int 1"
+
+    response = algod_client.compile(logic_sig_teal)
+    # print(response)
+    print("Response Result = ",response['result'])
+    print("Response Hash = ",response['hash'])
+
     validate_name_record_program = compile_program(algod_client, str.encode(logic_sig_teal))
-    lsig = LogicSigAccount(validate_name_record_program, [method.encode()])
+    lsig = LogicSigAccount(validate_name_record_program)
+    #validate_name_record_program)#, [method.encode()])
     print(lsig.address())
     return lsig
 
