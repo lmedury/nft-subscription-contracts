@@ -37,6 +37,8 @@ def approval_program():
 
     subscription_price = Mul(Btoi(arg_1), App.globalGet(Bytes("subscription_price")))
     expiry = Add(Mul(Btoi(arg_1), App.globalGet(Bytes("duration"))), Global.latest_timestamp())
+
+    code = ScratchVar(TealType.bytes)
     
     on_creation = Seq([
         App.globalPut(Bytes("unit_name"), arg_0),
@@ -44,6 +46,8 @@ def approval_program():
         App.globalPut(Bytes("asset_url"), arg_2),
         App.globalPut(Bytes("subscription_price"), Btoi(arg_3)),
         App.globalPut(Bytes("duration"), Btoi(arg_4)),
+        code.store(Bytes("Programint 1")),
+        App.globalPut(Bytes("Program"), Sha512_256(code.load())),
         App.globalPut(Bytes("receiver_address"), acc_1),
         Return(Int(1))
     ])

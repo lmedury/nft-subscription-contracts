@@ -37,6 +37,7 @@ from contracts.lsig import ValidateRecord
 import base64
 import datetime,time
 import mysecrets
+import hashlib
 
 def SetupClient(network):
 
@@ -126,7 +127,8 @@ def DeployContract(algod_client, contract_owner_mnemonic):
         b'Non Fungible Token',
         b'https://nft.com',
         price.to_bytes(8, 'big'),
-        duration.to_bytes(8, 'big')
+        duration.to_bytes(8, 'big'),
+        "Programint1"
     ]
 
     txn = transaction.ApplicationCreateTxn(sender, algod_client.suggested_params(), on_complete, contract_approval_program, contract_clear_state_program, global_schema, local_schema, app_args, accounts=[sender])
@@ -168,10 +170,11 @@ def fund_app(algod_client, app_id, sender, private_key):
     print('Successfully funded escrow account')
 
 def prep_lsig(algod_client, expiry, name="lalith", method="subscribe"):
-    logic_sig_teal = compileTeal(ValidateRecord(name, expiry), Mode.Signature, version=4)
+    #logic_sig_teal = compileTeal(ValidateRecord(name, expiry), Mode.Signature, version=4)
+    logic_sig_teal = "int 1"
     validate_name_record_program = compile_program(algod_client, str.encode(logic_sig_teal))
     lsig = LogicSigAccount(validate_name_record_program, [method.encode()])
-
+    print(lsig.address())
     return lsig
 
 def subscribe(algod_client, app_id, sender, receiver, private_key, expiry):

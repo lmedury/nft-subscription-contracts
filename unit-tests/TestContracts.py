@@ -25,6 +25,7 @@ from algosdk import mnemonic
 import json, random, string
 import helper
 import mysecrets
+from pyteal import *
 
 unittest.TestLoader.sortTestMethodsUsing = None
 
@@ -38,15 +39,18 @@ class TestContract(unittest.TestCase):
         cls.new_acct_addr, cls.new_acct_mnemonic = helper.GenerateAccount()
 
         print("Generated new account: "+cls.new_acct_addr)
- 
+
         cls.name = ''.join(random.choice(string.ascii_lowercase) for i in range(6))
         cls.app_index = 0
+
 
 #class DeployNameRegistry(TestContract):
     
     
     def test_a_deploynameregistry(self):
         
+        #random code here
+        #helper.prep_lsig(TestContract.algod_client, int(time.time()))
         
         helper.FundNewAccount(TestContract.algod_client, TestContract.new_acct_addr, 901000, TestContract.funding_acct_mnemonic)    
 
@@ -57,11 +61,14 @@ class TestContract(unittest.TestCase):
         TestContract.app_index = helper.DeployContract(TestContract.algod_client, TestContract.new_acct_mnemonic)
 
         print("Deployed contract to APP_ID: "+str(TestContract.app_index))
+        '''
         time.sleep(5)
         response=TestContract.algod_indexer.applications(TestContract.app_index)
         self.assertEqual(TestContract.app_index, response["application"]["id"])
         self.assertEqual(TestContract.new_acct_addr,response["application"]["params"]["creator"])
-        
+        '''
+    
+    '''
     def test_e_set_account_prop(self):
 
         print("Test 2: Optin to account")
@@ -113,6 +120,7 @@ class TestContract(unittest.TestCase):
         helper.destroy_nft(TestContract.algod_client, TestContract.app_index, TestContract.funding_addr, TestContract.second_account, mnemonic.to_private_key(TestContract.funding_acct_mnemonic), TestContract.expiry)
         #expiry = int(time.time())
         #helper.destroy_nft(TestContract.algod_client, app, account, account, mnemonic_addr, expiry)
+    '''
 
 # TODO: See where tearDown goes, class or outside
 def tearDownClass(self) -> None:
