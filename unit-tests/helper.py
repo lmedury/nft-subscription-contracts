@@ -33,6 +33,7 @@ import sys
 sys.path.append('../')
 
 from contracts.nft_subscription import approval_program, clear_state_program
+import contracts.test_onchain_lsig_gen as test_onchain_lsig_gen
 from contracts.lsig import ValidateRecord
 import base64
 import datetime,time
@@ -97,6 +98,49 @@ def FundNewAccount(algod_client, receiver, amount, funding_acct_mnemonic):
     except Exception as err:
         print(err)
         return
+
+def DeployTestContract(algod_client, contract_owner_mnemonic):
+
+    private_key=mnemonic.to_private_key(contract_owner_mnemonic)
+    sender=account.address_from_private_key(private_key)
+
+    # Setup Schema
+    local_ints = 4 
+    local_bytes = 12 
+    global_ints = 6 
+    global_bytes = 6 
+    global_schema = transaction.StateSchema(global_ints, global_bytes)
+    local_schema = transaction.StateSchema(local_ints, local_bytes)
+
+    on_complete = transaction.OnComplete.NoOpOC.real
+
+    compileTeal(test_onchain_lsig_gen.approval_program(), Mode.Application,version=6)
+    compileTeal(test_onchain_lsig_gen.clear_state_program(), Mode.Application,version=6)
+
+    contract_approval_program = compile_program(algod_client, import_teal_source_code_as_binary('nft_subscription_approval.teal'))
+    contract_clear_state_program = compile_program(algod_client, import_teal_source_code_as_binary('nft_subscription_clear_state.teal'))
+    
+
+    app_args = []
+
+    txn = transaction.ApplicationCreateTxn(sender, algod_client.suggested_params(), on_complete, contract_approval_program, contract_clear_state_program, global_schema, local_schema, app_args, accounts=[sender])
+
+    # sign transaction
+    signed_txn = txn.sign(private_key)
+    tx_id = signed_txn.transaction.get_txid()
+
+    # send transaction
+    algod_client.send_transactions([signed_txn])
+
+    # await confirmation
+    wait_for_confirmation(algod_client, tx_id)
+
+    # display results
+    transaction_response = algod_client.pending_transaction_info(tx_id)
+    app_id = transaction_response['application-index']
+    print("Deployed new contract with App-id: ",app_id)
+
+    return app_id
 
 def DeployContract(algod_client, contract_owner_mnemonic):
 
@@ -175,6 +219,31 @@ def prep_lsig(algod_client, expiry, name="lalith", method="subscribe"):
     validate_name_record_program = compile_program(algod_client, str.encode(logic_sig_teal))
     lsig = LogicSigAccount(validate_name_record_program, [method.encode()])
     print(lsig.address())
+    return lsig
+
+def prep_test_lsig(algod_client):
+    #logic_sig_teal = compileTeal(ValidateRecord(name, expiry), Mode.Signature, version=4)
+    logic_sig_teal = "int 1"
+
+    myprogram = "test_lsig.teal"
+    # read teal program
+    data = open(myprogram, 'r').read()
+    # compile teal program
+    response = algod_client.compile(data)
+    # print(response)
+    print("Response Result = ",response['result'])
+    print("Response Hash = ",response['hash'])
+
+
+    programstr = response['result']
+    t = programstr.encode()
+    program = base64.decodebytes(t)
+    print(program)
+    lsig = LogicSigAccount(program)
+
+    #validate_name_record_program = compile_program(algod_client, str.encode(logic_sig_teal))
+    print("LSIG address generated: {}".format(lsig.address()))
+
     return lsig
 
 def subscribe(algod_client, app_id, sender, receiver, private_key, expiry):
@@ -269,6 +338,7 @@ def optin_to_asset(algod_client, address, asset_id, private_key):
 # helper function to compile program source
 def compile_program(algod_client, source_code) :
     compile_response = algod_client.compile(source_code.decode('utf-8'))
+    print(compile_response)
     return base64.b64decode(compile_response['result'])
 
 def import_teal_source_code_as_binary(file_name):
